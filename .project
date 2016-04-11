@@ -14,11 +14,4 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>commons-io-2.4.jar</name>
-			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Desktop/Coding%20Stuff/Libraries/Apache%20Commons/commons-io-2.4.jar</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
