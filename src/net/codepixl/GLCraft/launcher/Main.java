@@ -50,10 +50,17 @@ public class Main extends Application {
     private final Button launch = new Button("Launch GLCraft");
     private final Text lbl = new Text("Loading...");
     private boolean doneDownloadProcess = false;
+    
+    public static boolean needsBootstrapUpdate = true;
+    public static final String currentBootstrapVer = "1";
+    
     Download d;
     @Override public void start(Stage stage) throws IOException {
     	//JOptionPane.showMessageDialog(null, "The GLCraft Launcher will open once you click OK. This may take a little bit while it determines the latest version.\n\nClick OK to continue.", "GLCraft Launcher", JOptionPane.INFORMATION_MESSAGE, null);
         // create the scene
+    	if(needsBootstrapUpdate){
+    		JOptionPane.showMessageDialog(null, "You are launching GLCraft with an older launcher that needs to be manually updated.\nPlease go to http://www.codepixl.net/GLCraft/ to download a new launcher.", "Warning", JOptionPane.WARNING_MESSAGE);
+    	}
         installedVersion = getVersion();
         if(installedVersion != "0"){
         	readableInstalledVersion = installedVersion.substring(0, 3)+"."+installedVersion.substring(3, 4);
@@ -70,8 +77,9 @@ public class Main extends Application {
         scene = new Scene(layout);
         stage.setScene(scene);
         stage.getIcons().add(new Image("file:res/icon32.png"));
-        stage.setMinWidth(1200);
-        stage.setWidth(1200);
+        stage.setMinWidth(1000);
+        stage.setWidth(1000);
+        stage.setResizable(false);
         System.out.println("shows");
         stage.show();
         System.out.println("show");
@@ -114,6 +122,13 @@ public class Main extends Application {
     }
     
     public static void main(String[] args){
+    	for(String s : args){
+    		if(s.contains("bootstrapver")){
+    			if(s.substring(s.indexOf(":")+1).equalsIgnoreCase(currentBootstrapVer)){
+    				needsBootstrapUpdate = false;
+    			}
+    		}
+    	}
         launch(args);
     }
     private BorderPane createSidebarContent() throws NumberFormatException, IOException {
@@ -255,10 +270,9 @@ class Browser extends Region {
         //apply the styles
         getStyleClass().add("browser");
         // load the web page
-        webEngine.load("http://www.codepixl.net/GLCraft");
+        webEngine.load("http://www.codepixl.net/GLCraft/newsfeed.php");
         //add the web view to the scene
         getChildren().add(browser);
-        
     }
     
     @Override protected void layoutChildren() {
