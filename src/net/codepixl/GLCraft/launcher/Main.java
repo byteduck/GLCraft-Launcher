@@ -11,9 +11,16 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import javax.swing.JOptionPane;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
@@ -21,6 +28,7 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.image.Image;
@@ -33,14 +41,8 @@ import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
-import javax.swing.JOptionPane;
-
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 public class Main extends Application {
     private Scene scene;
@@ -50,6 +52,7 @@ public class Main extends Application {
     private final Button launch = new Button("Launch GLCraft");
     private final Text lbl = new Text("Loading...");
     private boolean doneDownloadProcess = false;
+    private CheckBox cb;
     
     public static boolean needsBootstrapUpdate = true;
     public static final String currentBootstrapVer = "1";
@@ -61,12 +64,9 @@ public class Main extends Application {
     	if(needsBootstrapUpdate){
     		JOptionPane.showMessageDialog(null, "You are launching GLCraft with an older launcher that needs to be manually updated.\nPlease go to http://www.codepixl.net/GLCraft/ to download a new launcher.", "Warning", JOptionPane.WARNING_MESSAGE);
     	}
-        installedVersion = getVersion();
-        if(installedVersion != "0"){
-        	readableInstalledVersion = installedVersion.substring(0, 3)+"."+installedVersion.substring(3, 4);
-        }
         Browser b = new Browser();
         Pane bottomPane = createSidebarContent();
+        updateVerLabel();
         Pane mainPane = VBoxBuilder.create().spacing(10)
         .children(
         b
@@ -98,22 +98,13 @@ public class Main extends Application {
     
     public void update(String stat){
     	if(stat == "donedownloading" && !doneDownloadProcess){
-    		File downloadZip = new File(System.getProperty("user.home")+"\\GLCraft\\GLCraft\\GLCraft.zip");
+    		File downloadZip = new File(getDownloadPath());
     		System.out.println("Done Downloading, Unzipping");
-            unzip(downloadZip.toString(),System.getProperty("user.home")+"\\GLCraft","nil");
+            unzip(downloadZip.toString(),getGamePath(),"nil");
             System.out.println("Unzipped");
             FileUtils.deleteQuietly(downloadZip);
-            download("http://www.codepixl.net/GLCraft/ver.txt", new File(System.getProperty("user.home")+"\\GLCraft\\ver.txt"));
-            try {
-				installedVersion = getVersion();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            if(installedVersion != "0"){
-            	readableInstalledVersion = installedVersion.substring(0, 3)+"."+installedVersion.substring(3, 4);
-            }
-            lbl.setText("Installed Version: "+readableInstalledVersion);
+            download(getVerUrl(), new File(getVerPath()));
+            updateVerLabel();
             doneDownloadProcess = true;
             this.launch.setDisable(false);
             this.launch.setText("Launch GLCraft");
@@ -131,13 +122,61 @@ public class Main extends Application {
     	}
         launch(args);
     }
+    
+    public String getVerUrl(){
+    	return cb.selectedProperty().get() ? "http://codepixl.net/GLCraft/bver.txt" : "http://codepixl.net/GLCraft/ver.txt";
+    }
+    
+    public String getVerPath(){
+    	return cb.selectedProperty().get() ? System.getProperty("user.home")+"\\GLCraft\\bver.txt" : System.getProperty("user.home")+"\\GLCraft\\ver.txt";
+    }
+    
+    public String getDownloadUrl(){
+    	return cb.selectedProperty().get() ? "http://codepixl.net/downloads/GLCraftb.zip" : "http://codepixl.net/downloads/GLCraft.zip";
+    }
+    
+    public String getDownloadPath(){
+    	return cb.selectedProperty().get() ? System.getProperty("user.home")+"\\GLCraft\\GLCraftb.zip" : System.getProperty("user.home")+"\\GLCraft\\GLCraft.zip";
+    }
+    
+    public String getGamePath(){
+    	return cb.selectedProperty().get() ? System.getProperty("user.home")+"\\GLCraft\\GLCraftb" : System.getProperty("user.home")+"\\GLCraft\\GLCraft";
+    }
+    
+    public void updateVerLabel(){
+    	try{
+            String tempInstalledVer = getVersion();
+            installedVersion = tempInstalledVer.split(",")[0];
+            if(!tempInstalledVer.equals("0") && tempInstalledVer.split(",").length > 1){
+            	readableInstalledVersion = tempInstalledVer.split(",")[1];
+            }else if(!tempInstalledVer.equals("0")){
+            	readableInstalledVersion = installedVersion.substring(0, 3)+"."+installedVersion.substring(3);
+            }else{
+            	readableInstalledVersion = "None";
+            }
+        }catch(IOException e){
+        	installedVersion = "0";
+        	readableInstalledVersion = "error";
+        	e.printStackTrace();
+        }
+		lbl.setText("Installed Version: "+readableInstalledVersion);
+    }
+    
     private BorderPane createSidebarContent() throws NumberFormatException, IOException {
     	final ProgressBar pb = new ProgressBar(0);
     	final ProgressIndicator pi = new ProgressIndicator();
+    	cb = new CheckBox();
     	pi.setScaleX(0.5);
     	pi.setScaleY(0.5);
     	pi.setVisible(false);
     	pb.setVisible(false);
+    	cb.setText("Get beta versions");
+    	cb.selectedProperty().addListener(new ChangeListener<Boolean>(){
+			@Override
+			public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldval, Boolean newval) {
+				updateVerLabel();
+			}
+    	});
         lbl.setText("Installed Version: "+readableInstalledVersion);
         if(!hasInetConnection()){
         	lbl.setText(lbl.getText()+" (Offline)");
@@ -145,29 +184,35 @@ public class Main extends Application {
         launch.setOnAction(new EventHandler<ActionEvent>(){
             @Override public void handle(ActionEvent actionEvent){
                 if(launch.getText() == "Launch GLCraft"){
-                	String curV = getCurVersion();
+                	String fcurV = getCurVersion();
+                	String curV = fcurV.split(",")[0];
+                	String rcurV;
+                	if(fcurV.split(",").length > 1)
+                		rcurV = fcurV.split(",")[1];
+                	else
+                		rcurV = curV;
                     if(Double.parseDouble(curV) > Double.parseDouble(installedVersion)){
                         System.out.println(curV + ">" + installedVersion);
-                        JOptionPane.showMessageDialog(null, "There is a new version of GLCraft ("+curV.substring(0, 3)+"."+curV.substring(3, 4)+"). It will install when you click the 'Update GLCraft' Button.", "GLCraft Update", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "There is a new version of GLCraft ("+rcurV+"). It will install when you click the 'Update GLCraft' Button.", "GLCraft Update", JOptionPane.INFORMATION_MESSAGE);
                         launch.setText("Update GLCraft");
                         return;
                     }
-	                System.out.println("launching: "+"java -Djava.library.path="+System.getProperty("user.home")+"\\GLCraft\\GLCraft"+" -jar "+System.getProperty("user.home")+"\\GLCraft\\GLCraft\\GLCraft.jar");
-	                ProcessBuilder pb = new ProcessBuilder("java", "-Djava.library.path="+System.getProperty("user.home")+"\\GLCraft\\GLCraft","-jar", System.getProperty("user.home")+"\\GLCraft\\GLCraft\\GLCraft.jar");
+	                System.out.println("launching: "+"java -Djava.library.path="+getGamePath()+" -jar "+getGamePath()+"\\GLCraft.jar");
+	                ProcessBuilder pb = new ProcessBuilder("java", "-Djava.library.path="+getGamePath(),"-jar", getGamePath()+"\\GLCraft.jar");
 	                try {
 	                	pb.inheritIO();
-	                	pb.environment().put("java.library.path",new File(System.getProperty("user.home")+"\\GLCraft\\GLCraft").getAbsolutePath());
+	                	pb.environment().put("java.library.path",new File(getGamePath()).getAbsolutePath());
 	                    Process p = pb.start();
 	                    System.exit(0);
 	                }catch (IOException e) {
 	                	JOptionPane.showMessageDialog(null, "Error","There was an error opening GLCraft. Maybe it's not installed properly?",JOptionPane.ERROR_MESSAGE);
 	                    e.printStackTrace();
 	                }
-                }else if(launch.getText() == "Update GLCraft"){
+                }else if(launch.getText().equals("Update GLCraft")){
                     System.out.println("update");
                     //JOptionPane.showMessageDialog(null, "Press OK to start downloading. Please wait while GLCraft downloads.", "GLCraft Update", JOptionPane.INFORMATION_MESSAGE);
-                    FileUtils.deleteQuietly(new File(System.getProperty("user.home")+"\\GLCraft\\GLCraft"));
-                	d = new Download("http://www.codepixl.net/downloads/GLCraft.zip", System.getProperty("user.home")+"/GLCraft/GLCraft/GLCraft.zip", pb, pi);
+                    FileUtils.deleteQuietly(new File(getGamePath()));
+                	d = new Download(getDownloadUrl(), getDownloadPath(), pb, pi);
                 	launch.setDisable(true);
                 }
             }
@@ -177,6 +222,7 @@ public class Main extends Application {
         launchPane.setTop(progPane);
         launchPane.setCenter(lbl);
         launchPane.setBottom(launch);
+        progPane.setLeft(cb);
         progPane.setCenter(pb);
         progPane.setRight(pi);
         progPane.setPrefHeight(10);
@@ -204,7 +250,7 @@ public class Main extends Application {
     	URL url;
 		try {
 			if(hasInetConnection()){
-				url = new URL("http://www.codepixl.net/GLCraft/ver.txt");
+				url = new URL(getVerUrl());
 				URLConnection con = url.openConnection();
 		        con.addRequestProperty("User-Agent", "CrapExplorer/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
 		        con.setConnectTimeout(1000);
@@ -234,7 +280,7 @@ public class Main extends Application {
         }
     }
     private String getVersion() throws IOException{
-        return readFile(System.getProperty("user.home")+"\\GLCraft\\ver.txt",Charset.forName("UTF8"));
+        return readFile(getVerPath(),Charset.forName("UTF8"));
     }
     static String readFile(String path, Charset encoding){
         byte[] encoded;
