@@ -55,7 +55,7 @@ public class Main extends Application {
     private CheckBox cb;
     
     public static boolean needsBootstrapUpdate = true;
-    public static final String currentBootstrapVer = "1";
+    public static final String currentBootstrapVer = "2";
     
     Download d;
     @Override public void start(Stage stage) throws IOException {
@@ -128,7 +128,7 @@ public class Main extends Application {
     }
     
     public String getVerPath(){
-    	return cb.selectedProperty().get() ? System.getProperty("user.home")+"\\GLCraft\\bver.txt" : System.getProperty("user.home")+"\\GLCraft\\ver.txt";
+    	return cb.selectedProperty().get() ? getGLCraftPath("bver.txt") : getGLCraftPath("ver.txt");
     }
     
     public String getDownloadUrl(){
@@ -136,11 +136,19 @@ public class Main extends Application {
     }
     
     public String getDownloadPath(){
-    	return cb.selectedProperty().get() ? System.getProperty("user.home")+"\\GLCraft\\GLCraftb.zip" : System.getProperty("user.home")+"\\GLCraft\\GLCraft.zip";
+    	return cb.selectedProperty().get() ? getGLCraftPath("GLCraftb.zip") : getGLCraftPath("GLCraft.zip");
     }
     
     public String getGamePath(){
-    	return cb.selectedProperty().get() ? System.getProperty("user.home")+"\\GLCraft\\GLCraftb" : System.getProperty("user.home")+"\\GLCraft\\GLCraft";
+    	return cb.selectedProperty().get() ? getGLCraftPath("GLCraftb") : getGLCraftPath("GLCraft");
+    }
+    
+    public String getGLCraftPath(){
+    	return System.getProperty("user.home")+File.separator+"GLCraft";
+    }
+    
+    public String getGLCraftPath(String dir){
+    	return getGLCraftPath()+File.separator+dir;
     }
     
     public void updateVerLabel(){
